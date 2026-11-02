@@ -1,5 +1,6 @@
 const $=s=>document.querySelector(s),send=(op,data={})=>chrome.runtime.sendMessage({app:'dmvault',op,...data});
 let all={},rows=[],visible=100;
+const selected=new Set();
 async function load(){
   all=await send('state');const selected=$('#chat').value,select=$('#chat');select.replaceChildren();
   const chats=Object.values(all).filter(x=>x&&x.scope&&typeof x.count==='number');
@@ -10,15 +11,19 @@ async function load(){
 function filtered(){
   const query=$('#search').value.toLowerCase();
   return Object.values(all).filter(x=>x&&x.url&&x.scope===$('#chat').value&&
-    (x.id+' '+x.source).toLowerCase().includes(query)).sort((a,b)=>a.firstSeen-b.firstSeen);
+    (x.id+' '+x.source).toLowerCase().includes(query)).sort((a,b)=>
+      $('#sort').value==='id'?a.id.localeCompare(b.id):$('#sort').value==='oldest'?a.firstSeen-b.firstSeen:b.firstSeen-a.firstSeen);
 }
 function render(){
   rows=filtered();$('#count').textContent=rows.length+' saved post link'+(rows.length===1?'':'s');$('#results').replaceChildren();
   if(!rows.length)$('#message').textContent='No links in this selection yet. Open an X DM and choose Collect this DM, or import an archive below.';
   for(const row of rows.slice(0,visible)){
     const article=document.createElement('article'),a=document.createElement('a'),small=document.createElement('small');
+    const check=document.createElement('input');check.type='checkbox';check.checked=selected.has(row.id);check.setAttribute('aria-label','Select post '+row.id);
+    check.onchange=()=>{check.checked?selected.add(row.id):selected.delete(row.id);selectionUI();};
     a.href=row.url;a.target='_blank';a.rel='noopener';a.textContent=row.url;
-    small.textContent=new Date(row.firstSeen).toLocaleString()+' · '+row.source;article.append(a,small);
+    small.textContent=new Date(row.firstSeen).toLocaleString()+' · '+row.source;
+    const info=document.createElement('div');info.className='post-info';info.append(a,small);article.append(check,info);
     const downloadVideo=document.createElement('button');downloadVideo.textContent='Download video';
     downloadVideo.onclick=()=>DMVideoUI.open({id:row.id,scope:row.scope});article.append(downloadVideo);
     // Only HTTPS media URLs recovered from the post response are offered; no speculative requests.
@@ -29,12 +34,32 @@ function render(){
     $('#results').append(article);
   }
   $('#more').hidden=rows.length<=visible;
+  selectionUI();
+}
+function selectionUI(){
+  $('#selectionCount').textContent=selected.size+' selected';
+  $('#copySelected').disabled=!selected.size;$('#deleteSelected').disabled=!selected.size;
+  $('#selectAll').textContent=rows.length&&rows.every(x=>selected.has(x.id))?'Clear selection':'Select filtered';
 }
 function download(name,text,type){
   const url=URL.createObjectURL(new Blob([text],{type})),a=document.createElement('a');
   a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
-$('#chat').onchange=()=>{visible=100;render();};$('#search').oninput=()=>{visible=100;render();};
+$('#chat').onchange=()=>{visible=100;selected.clear();render();};$('#search').oninput=()=>{visible=100;render();};
+$('#sort').onchange=render;
+$('#density').onclick=()=>{document.body.classList.toggle('compact-list');$('#density').textContent=document.body.classList.contains('compact-list')?'Comfortable list':'Compact list';};
+$('#openX').onclick=()=>send('openX');
+$('#selectAll').onclick=()=>{if(rows.every(x=>selected.has(x.id)))selected.clear();else for(const row of rows)selected.add(row.id);render();};
+$('#copySelected').onclick=async()=>{
+  try{await navigator.clipboard.writeText(Object.values(all).filter(x=>x?.scope===$('#chat').value&&selected.has(x.id)).map(x=>x.url).join('\n'));$('#message').textContent='Copied '+selected.size+' selected links.';}
+  catch{$('#message').textContent='Copy blocked. Use Export TXT.';}
+};
+$('#deleteSelected').onclick=async()=>{
+  if(!confirm('Remove '+selected.size+' saved links from this conversation? Downloaded video files will not be deleted.'))return;
+  const r=await send('deletePosts',{scope:$('#chat').value,ids:[...selected]});
+  if(r.error)return $('#message').textContent=r.error;
+  selected.clear();await load();$('#message').textContent='Removed '+r.removed+' saved links.';
+};
 $('#more').onclick=()=>{visible+=100;render();};
 $('#copy').onclick=async()=>{try{await navigator.clipboard.writeText(rows.map(x=>x.url).join('\n'));$('#message').textContent='Copied '+rows.length+' links.';}catch{$('#message').textContent='Copy blocked. Export TXT instead.';}};
 $('#txt').onclick=()=>download('dm-'+$('#chat').value+'.txt',rows.map(x=>x.url).join('\n'),'text/plain');
