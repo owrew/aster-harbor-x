@@ -35,6 +35,8 @@ const messageRouter = getMessageRouter()
 initMessageRouter(messageRouter)
 
 Browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // DM Link Vault has its own listener and storage; do not claim its messages.
+  if ((message as { app?: string } | null)?.app === 'dmvault') return true
   messageRouter.handle({ message, sender, response: sendResponse })
   return true
 })
