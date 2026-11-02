@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 import { CheckDownloadWasTriggeredBySelf } from '#domain/useCases/checkDownloadWasTriggeredBySelf'
+import './vaultBridge'
 import AlarmName from '#enums/AlarmName'
 import { getEventPublisher } from '#infra/eventPublisher'
 import { init as initMonitor } from '#monitor'
