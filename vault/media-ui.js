@@ -8,6 +8,10 @@
       const shadow=host.attachShadow({mode:'open'});
       shadow.innerHTML='<style>:host{font:14px/1.5 "Segoe UI",sans-serif;color:#173047}section{background:#f5f9fc;border:1px solid #a8bbc9;border-radius:12px;padding:22px;width:390px;max-width:85vw;max-height:75vh;overflow:auto}h2{margin:0;font-size:21px}button{font:inherit;padding:8px 11px;border:1px solid #a8bbc9;background:white;color:#173047;border-radius:6px;cursor:pointer;margin:5px 5px 5px 0}button:focus-visible{outline:3px solid #286fb8}button:disabled{opacity:.6;cursor:wait}#info{overflow-wrap:anywhere}#close{float:right}small{display:block;color:#526b7e}</style><section role="dialog" aria-modal="true" aria-labelledby="title"><button id="close">Close</button><h2 id="title">Download video</h2><p id="info"></p><p id="status" role="status">Checking saved video data…</p><div id="videos"></div><button id="find">Find videos</button><button id="settings">Download settings</button><small>Choose one video to download. Nothing downloads automatically. A lookup can make X requests and is disabled during cooldown.</small></section>';
       document.documentElement.append(host);
+      const {preferences:p={}}=await chrome.runtime.sendMessage({app:'dmvault',op:'preferences'});
+      if(p.theme==='dark'||(p.theme!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches)){
+        shadow.querySelector('style').textContent+='section{background:#17263f;border-color:#455a79;color:#e7edff}button{background:#21334e;border-color:#455a79;color:#e7edff}small{color:#a8b8cf}';
+      }
       const $=s=>shadow.querySelector(s),request=(op,data={})=>chrome.runtime.sendMessage({app:'dmvault',op,id,scope,...data});
       $('#info').textContent='Post '+id;
       const close=()=>{document.removeEventListener('keydown',key,true);host.remove();previous?.focus?.();};

@@ -1,6 +1,14 @@
 (() => {
   if(window.__dmVaultNetwork)return;window.__dmVaultNetwork=true;
   const P=DMV,MAX=2*1024*1024;let config=null,active=0;
+  for(const name of['pushState','replaceState']){
+    const original=history[name];
+    history[name]=function(...args){
+      const before=location.pathname,result=original.apply(this,args);
+      if(before!==location.pathname)window.postMessage({dmVault:'route'},location.origin);
+      return result;
+    };
+  }
   const send=data=>window.postMessage({dmVault:'data',...data},location.origin);
   window.addEventListener('message',e=>{
     if(e.source===window && e.data?.dmVault==='config')config=e.data;
@@ -28,12 +36,15 @@
     if((!config?.enabled&&!config?.downloads) || config.scope!==s.scope || config.epoch!==s.epoch)return false;
     try {return P.conversation(top.location.href)===s.scope;}catch{return false;}
   }
-  function report(s,status,headers,body){
+  function reference(s){
     if(!current(s))return;
     // A GetPostById request already names the post, even if its preview is rate limited.
     // Saving that explicit reference needs no retry or extra API lookup.
     if(s.target)send({kind:'preview',scope:s.scope,epoch:s.epoch,ids:[s.target],media:[]});
     if(s.target&&s.collect&&config.enabled)send({kind:'links',scope:s.scope,epoch:s.epoch,ids:[s.target],media:[]});
+  }
+  function report(s,status,headers,body){
+    if(!current(s))return;
     if(status===429 || status===403){
       if(s.collect&&config.enabled)send({kind:'limit',scope:s.scope,epoch:s.epoch,until:status===429?P.cooldown(headers):Date.now()+30*60*1000,status});return;
     }
@@ -64,6 +75,7 @@
     const s=snapshot(args[0]?.url||String(args[0]));
     const promise=fetch0.apply(this,args);
     if(s)promise.then(r=>{
+      reference(s);
       if(r.status===429||r.status===403)report(s,r.status,r.headers,null);
       else read(r,s);
     },()=>{});
@@ -74,6 +86,7 @@
     const result=open0.call(this,method,url,...rest),s=snapshot(String(url));
     if(s)this.addEventListener('load',()=>{
       try{
+        reference(s);
         const h={get:k=>this.getResponseHeader(k)};
         if(this.status===429||this.status===403)report(s,this.status,h,null);
         else if(this.responseType==='json')report(s,this.status,h,this.response);
