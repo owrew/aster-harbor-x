@@ -53,7 +53,8 @@ console.log('PASS parser, encoded URLs, user/message ID rejection, conversation 
   await page.waitForFunction(()=>document.querySelector('#dm-vault-panel').shadowRoot.querySelector('#status').textContent.includes('Collecting'));
   async function request(id){return page.evaluate(id=>fetch('/i/api/graphql/hash/GetPostById?variables='+encodeURIComponent(JSON.stringify({rest_id:id}))).then(x=>x.text()),id);}
   await request(ID);
-  await page.waitForFunction(()=>document.querySelector('#dm-vault-panel').shadowRoot.querySelector('#count').textContent==='1 saved posts');
+  try{await page.waitForFunction(()=>document.querySelector('#dm-vault-panel').shadowRoot.querySelector('#count').textContent==='1 saved posts',null,{timeout:10000});}
+  catch(e){console.log('Stored fixture state:',await worker.evaluate(()=>chrome.storage.local.get(null)));console.log('Panel:',await page.evaluate(()=>document.querySelector('#dm-vault-panel').shadowRoot.textContent));throw e;}
   await page.getByRole('button',{name:'Stop harvesting',exact:true}).click();
   await request('2111782218087415998');
   await page.waitForFunction(()=>document.querySelector('#dm-vault-panel').shadowRoot.querySelector('#status').textContent.includes('Harvesting stopped'));
@@ -76,6 +77,7 @@ console.log('PASS parser, encoded URLs, user/message ID rejection, conversation 
   await page.getByRole('button',{name:'Start harvesting',exact:true}).click();
   await page.getByRole('button',{name:'Harvest DM links',exact:true}).click();
   await page.evaluate(()=>document.querySelector('#history').scrollTop=1800);
+  await page.locator('#dm-vault-panel').locator('summary').click();
   await page.getByRole('button',{name:'Choose message area',exact:true}).click();
   await page.locator('#history').click({position:{x:20,y:30}});
   await page.getByRole('button',{name:'Start slow scroll',exact:true}).click();
