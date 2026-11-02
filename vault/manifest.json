@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "DM Link Vault",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Persistent per-conversation X post links, cautious scrolling, and offline archive import.",
   "permissions": ["storage", "unlimitedStorage"],
   "background": {"service_worker":"background.js"},
@@ -9,6 +9,6 @@
   "options_page":"manager.html",
   "content_scripts":[
     {"matches":["https://x.com/*","https://*.x.com/*","https://twitter.com/*"],"js":["extract.js","network.js"],"world":"MAIN","run_at":"document_start","all_frames":true},
-    {"matches":["https://x.com/*","https://*.x.com/*","https://twitter.com/*"],"js":["extract.js","content.js"],"run_at":"document_start","all_frames":true}
+    {"matches":["https://x.com/*","https://*.x.com/*","https://twitter.com/*"],"js":["extract-isolated.js","media-ui.js","content.js"],"run_at":"document_start","all_frames":true}
   ]
 }

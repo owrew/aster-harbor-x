@@ -19,6 +19,8 @@ function render(){
     const article=document.createElement('article'),a=document.createElement('a'),small=document.createElement('small');
     a.href=row.url;a.target='_blank';a.rel='noopener';a.textContent=row.url;
     small.textContent=new Date(row.firstSeen).toLocaleString()+' · '+row.source;article.append(a,small);
+    const downloadVideo=document.createElement('button');downloadVideo.textContent='Download video';
+    downloadVideo.onclick=()=>DMVideoUI.open({id:row.id,scope:row.scope});article.append(downloadVideo);
     // Only HTTPS media URLs recovered from the post response are offered; no speculative requests.
     for(const media of row.media||[]){
       const link=document.createElement('a');link.href=media.url;link.target='_blank';link.rel='noopener';
