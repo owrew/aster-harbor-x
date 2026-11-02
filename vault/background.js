@@ -1,4 +1,5 @@
 importScripts('extract.js');
+importScripts('preferences.js');
 let chain=Promise.resolve();
 let mediaChain=Promise.resolve();
 const previews=new Map();
@@ -6,7 +7,40 @@ const allowed=sender=>sender.tab && /^https:\/\/(?:[^/]+\.)?(?:x|twitter)\.com\/
 chrome.runtime.onMessage.addListener((msg,sender,reply)=>{
   if(msg?.app!=='dmvault')return;
   const handle=async()=>{
-    const all=await chrome.storage.local.get(null);
+    const sessionKey='session:'+sender.tab?.id;
+    if(msg.op==='summary'){
+      const basic=await chrome.storage.local.get([sessionKey,'cooldownUntil','preferences']);
+      const session=basic[sessionKey],scope=session?.scope||DMV.conversation(sender.tab?.url||'');
+      const chatKey='chat:'+scope,chat=await chrome.storage.local.get(chatKey);
+      const recent=(chat[chatKey]?.recent||[]).slice(-6).map(id=>'post:'+scope+':'+id);
+      return {...basic,...chat,...await chrome.storage.local.get(recent),session,preferences:{...DMPrefs,...basic.preferences}};
+    }
+    if(msg.op==='preferences')return {preferences:{...DMPrefs,...(await chrome.storage.local.get('preferences')).preferences}};
+    if(msg.op==='deletePosts'){
+      if(!sender.url?.startsWith(chrome.runtime.getURL('manager.html')))throw Error('Use the saved-links library.');
+      if((msg.ids||[]).length>2000)throw Error('Select at most 2,000 links for one removal.');
+      const keys=(msg.ids||[]).filter(DMV.valid).slice(0,2000).map(id=>'post:'+msg.scope+':'+id);
+      const existing=await chrome.storage.local.get(keys),removed=Object.keys(existing).length;
+      const chatKey='chat:'+msg.scope,data=await chrome.storage.local.get(chatKey),chat=data[chatKey];
+      await chrome.storage.local.remove(Object.keys(existing));
+      if(chat)await chrome.storage.local.set({[chatKey]:{...chat,count:Math.max(0,chat.count-removed),recent:(chat.recent||[]).filter(id=>!msg.ids.includes(id))}});
+      return {removed};
+    }
+    if(msg.op==='savePreferences'){
+      if(!sender.url?.startsWith(chrome.runtime.getURL('')))throw Error('Open the extension settings to change preferences.');
+      const p={...DMPrefs,...msg.preferences};
+      if(!['system','light','dark'].includes(p.theme)||!['left','right'].includes(p.corner))throw Error('Invalid appearance setting');
+      for(const [key,min,max]of[['scanDelay',400,3000],['maxCards',50,400],['scrollSeconds',15,120],['maxSteps',10,200]]){
+        if(!Number.isFinite(p[key])||p[key]<min||p[key]>max)throw Error('Invalid value for '+key);
+      }
+      for(const key of['compact','showButtons','previewDetection'])p[key]=!!p[key];
+      if(p.supportUrl){const u=new URL(p.supportUrl);if(u.protocol!=='https:'||!['ko-fi.com','www.patreon.com','patreon.com','buymeacoffee.com','www.buymeacoffee.com','paypal.me','www.paypal.com'].includes(u.hostname))throw Error('Use an HTTPS creator-support link from an approved provider.');}
+      await chrome.storage.local.set({preferences:p});return {ok:true};
+    }
+    const keys=msg.op==='state'||msg.op==='import'?null:
+      [sessionKey,'cooldownUntil','preferences','chat:'+msg.scope,'video:'+msg.id,'post:'+msg.scope+':'+msg.id,
+        ...(msg.ids||[]).slice(0,2000).map(id=>'post:'+msg.scope+':'+id)];
+    const all=await chrome.storage.local.get(keys);
     if(msg.op==='preview'){
       if(!allowed(sender)||DMV.conversation(sender.tab.url)!==msg.scope)return {ignored:true};
       for(const id of (msg.ids||[]).slice(0,100)){
@@ -26,6 +60,8 @@ chrome.runtime.onMessage.addListener((msg,sender,reply)=>{
       return {ok:true};
     }
     if(msg.op==='settings'){await chrome.runtime.openOptionsPage();return {ok:true};}
+    if(msg.op==='legacySettings'){await chrome.tabs.create({url:chrome.runtime.getURL('index.html')});return {ok:true};}
+    if(msg.op==='openX'){await chrome.tabs.create({url:'https://x.com/'});return {ok:true};}
     if(msg.op==='videos'||msg.op==='downloadVideo'){
       const trustedPage=sender.url?.startsWith(chrome.runtime.getURL('manager.html'));
       if(!allowed(sender)&&!trustedPage)throw Error('Use a download button in X or the saved-links library.');
@@ -82,11 +118,11 @@ chrome.runtime.onMessage.addListener((msg,sender,reply)=>{
         const media=(msg.media||[]).filter(m=>m.id===id).slice(0,8).filter(m=>{
           try{const u=new URL(m.url);return u.protocol==='https:'&&/^(video|pbs)\.twimg\.com$/.test(u.hostname);}catch{return false;}
         }).map((m,i)=>({id,url:m.url,type:m.type==='video'?'video':'image',serial:i+1}));
-        if(existing){if(media.length)changes[key]={...existing,media};continue;}
+        if(existing){if(media.length&&JSON.stringify(media)!==JSON.stringify(existing.media))changes[key]={...existing,media};continue;}
         changes[key]={id,scope:msg.scope,url:'https://x.com/i/status/'+id,firstSeen:Date.now(),source:msg.source||'network',media};added++;
       }
-      changes[convKey]={...conv,count:conv.count+added,updated:Date.now()};
-      await chrome.storage.local.set(changes);return {added};
+      if(added)changes[convKey]={...conv,count:conv.count+added,updated:Date.now(),recent:[...new Set([...(conv.recent||[]),...Object.values(changes).map(x=>x.id)])].slice(-6)};
+      if(Object.keys(changes).length)await chrome.storage.local.set(changes);return {added};
     }
     if(msg.op==='import'){
       if(!sender.url?.startsWith(chrome.runtime.getURL('manager.html')))throw Error('Import is available only in the extension manager');
