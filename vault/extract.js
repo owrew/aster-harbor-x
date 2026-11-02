@@ -43,10 +43,10 @@
       if(valid(id) && (!target||id===target)){
         ids.add(id);
         const entities=v.legacy?.extended_entities||v.extended_entities;
-        for(const m of entities?.media||[]){
+        for(const [index,m] of (entities?.media||[]).entries()){
           const variants=(m.video_info?.variants||[]).filter(x=>x.content_type==='video/mp4').sort((a,b)=>(b.bitrate||0)-(a.bitrate||0));
           const url=variants[0]?.url || m.media_url_https;
-          try {const u=new URL(url);if(u.protocol==='https:' && /^(video|pbs)\.twimg\.com$/.test(u.hostname)) media.push({id,url:u.href});}catch{}
+          try {const u=new URL(url);if(u.protocol==='https:' && /^(video|pbs)\.twimg\.com$/.test(u.hostname)) media.push({id,url:u.href,type:variants.length?'video':'image',serial:index+1});}catch{}
         }
       }
       if(!target)for(const k of ['tweet_id','tweet_id_str','post_id','postId','tweetId','status_id','statusId'])if(valid(v[k]))ids.add(v[k]);
