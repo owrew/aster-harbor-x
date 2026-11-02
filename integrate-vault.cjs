@@ -7,10 +7,13 @@ for(const file of fs.readdirSync(vault)){
  if(file==='manifest.json'||!fs.statSync(path.join(vault,file)).isFile())continue;
  fs.copyFileSync(path.join(vault,file),path.join(output,file));
 }
-original.name='Media Harvest + DM Link Vault';
+original.name='Media Harvester Downloader';
+original.version='4.5.8';
+original.version_name='1.1.0 (Media Harvest 4.5.7 fork)';
 original.description='Media Harvest with persistent conversation-scoped DM post links, cooldown handling, and offline imports.';
 original.background={service_worker:'vault-sw.js'};
 original.content_scripts.push(...standalone.content_scripts);
+fs.copyFileSync(path.join(vault,'extract.js'),path.join(output,'extract-isolated.js'));
 fs.writeFileSync(path.join(output,'vault-sw.js'),"importScripts('sw.js','background.js');\n");
 fs.writeFileSync(path.join(output,'manifest.json'),JSON.stringify(original,null,2));
 console.log('Integrated build:',output);
