@@ -1,10 +1,53 @@
 importScripts('extract.js');
 let chain=Promise.resolve();
+let mediaChain=Promise.resolve();
+const previews=new Map();
 const allowed=sender=>sender.tab && /^https:\/\/(?:[^/]+\.)?(?:x|twitter)\.com\//.test(sender.url||'');
 chrome.runtime.onMessage.addListener((msg,sender,reply)=>{
   if(msg?.app!=='dmvault')return;
-  chain=chain.catch(()=>{}).then(async()=>{
+  const handle=async()=>{
     const all=await chrome.storage.local.get(null);
+    if(msg.op==='preview'){
+      if(!allowed(sender)||DMV.conversation(sender.tab.url)!==msg.scope)return {ignored:true};
+      for(const id of (msg.ids||[]).slice(0,100)){
+        if(!DMV.valid(id))continue;
+        const videos=(msg.media||[]).filter(m=>m.id===id).slice(0,8).filter(m=>{
+          try{const u=new URL(m.url);return u.protocol==='https:'&&u.hostname==='video.twimg.com'&&/\.mp4$/i.test(u.pathname);}catch{return false;}
+        }).map((m,i)=>({id,url:m.url,type:'video',serial:i+1}));
+        if(videos.length)previews.set(sender.tab.id+':'+msg.scope+':'+id,videos);
+      }
+      while(previews.size>200)previews.delete(previews.keys().next().value);
+      return {ok:true};
+    }
+    if(msg.op==='init'){
+      if(!allowed(sender)||sender.frameId!==0)return {ok:true};
+      const key='session:'+sender.tab.id;
+      await chrome.storage.local.set({[key]:{...all[key],enabled:false,epoch:Date.now()}});
+      return {ok:true};
+    }
+    if(msg.op==='settings'){await chrome.runtime.openOptionsPage();return {ok:true};}
+    if(msg.op==='videos'||msg.op==='downloadVideo'){
+      const trustedPage=sender.url?.startsWith(chrome.runtime.getURL('manager.html'));
+      if(!allowed(sender)&&!trustedPage)throw Error('Use a download button in X or the saved-links library.');
+      if(!DMV.valid(msg.id))throw Error('Invalid post ID.');
+      const key='video:'+msg.id,fromChat=all['post:'+msg.scope+':'+msg.id];
+      const isVideo=v=>{try{const u=new URL(v.url);return u.protocol==='https:'&&u.hostname==='video.twimg.com'&&/\.mp4$/i.test(u.pathname);}catch{return false;}};
+      let videos=(all[key]?.videos||fromChat?.media||previews.get(sender.tab?.id+':'+msg.scope+':'+msg.id)||[]).filter(isVideo);
+      if(msg.op==='videos'){
+        if(!videos.length&&msg.lookup){
+          if((all.cooldownUntil||0)>Date.now())throw Error('Video lookup paused until '+new Date(all.cooldownUntil).toLocaleTimeString()+'.');
+          if(!globalThis.dmVaultMediaHarvest)throw Error('Install the combined Media Harvester Downloader package to find uncached videos.');
+          videos=await globalThis.dmVaultMediaHarvest.resolve(msg.id);
+          await chrome.storage.local.set({[key]:{videos,updated:Date.now()}});
+        }
+        return {videos};
+      }
+      if(!Number.isInteger(msg.index)||!videos[msg.index])throw Error('Choose a video from the list first.');
+      if(!globalThis.dmVaultMediaHarvest)throw Error('Use the combined extension for Media Harvest downloads.');
+      const result=await globalThis.dmVaultMediaHarvest.download(msg.id,{...videos[msg.index],serial:videos[msg.index].serial||msg.index+1});
+      await chrome.storage.local.set({['videoDownload:'+msg.id+':'+msg.index]:{id:msg.id,index:msg.index,at:Date.now(),status:'dispatched'}});
+      return result;
+    }
     if(msg.op==='session')return {session:all['session:'+sender.tab?.id]};
     if(msg.op==='library'){await chrome.tabs.create({url:chrome.runtime.getURL('manager.html')});return {ok:true};}
     if(msg.op==='state')return all;
@@ -17,12 +60,13 @@ chrome.runtime.onMessage.addListener((msg,sender,reply)=>{
     }
     if(msg.op==='pause'){
       const key='session:'+sender.tab?.id;
-      await chrome.storage.local.set({[key]:{...all[key],enabled:false}});return {ok:true};
+      await chrome.storage.local.set({[key]:{...all[key],enabled:false,epoch:Date.now()}});return {ok:true};
     }
     if(msg.op==='record'||msg.op==='limit'||msg.op==='checkpoint'){
       if(!allowed(sender))throw Error('Invalid source');
       const session=all['session:'+sender.tab.id];
-      if(!session?.enabled||session.scope!==msg.scope||DMV.conversation(sender.tab.url)!==msg.scope)return {ignored:true};
+      if(!session?.enabled||session.scope!==msg.scope||DMV.conversation(sender.tab.url)!==msg.scope||
+        (msg.epoch!==undefined&&msg.epoch!==session.epoch))return {ignored:true};
       if(msg.op==='limit'){
         const until=Math.max(all.cooldownUntil||0,Math.min(Number(msg.until)||Date.now()+900000,Date.now()+86400000));
         await chrome.storage.local.set({cooldownUntil:until,lastLimit:msg.status});return {ok:true};
@@ -37,7 +81,7 @@ chrome.runtime.onMessage.addListener((msg,sender,reply)=>{
         const key='post:'+msg.scope+':'+id,existing=all[key];
         const media=(msg.media||[]).filter(m=>m.id===id).slice(0,8).filter(m=>{
           try{const u=new URL(m.url);return u.protocol==='https:'&&/^(video|pbs)\.twimg\.com$/.test(u.hostname);}catch{return false;}
-        });
+        }).map((m,i)=>({id,url:m.url,type:m.type==='video'?'video':'image',serial:i+1}));
         if(existing){if(media.length)changes[key]={...existing,media};continue;}
         changes[key]={id,scope:msg.scope,url:'https://x.com/i/status/'+id,firstSeen:Date.now(),source:msg.source||'network',media};added++;
       }
@@ -57,8 +101,16 @@ chrome.runtime.onMessage.addListener((msg,sender,reply)=>{
       await chrome.storage.local.set(changes);return {added};
     }
     throw Error('Unknown operation');
-  });
-  chain.then(reply,e=>reply({error:e.message}));return true;
+  };
+  // A slow user-requested media lookup must never delay Stop harvesting.
+  if(msg.op==='videos'||msg.op==='downloadVideo'){
+    mediaChain=mediaChain.catch(()=>{}).then(handle);
+    mediaChain.then(reply,e=>reply({error:e.message}));
+  }else{
+    chain=chain.catch(()=>{}).then(handle);
+    chain.then(reply,e=>reply({error:e.message}));
+  }
+  return true;
 });
 // Tab IDs may be reused after a browser restart; never reactivate another tab's session.
 chrome.runtime.onStartup.addListener(async()=>{

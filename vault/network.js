@@ -6,7 +6,7 @@
     if(e.source===window && e.data?.dmVault==='config')config=e.data;
   });
   function snapshot(raw){
-    if(!config?.enabled || !config.scope)return null;
+    if(!config?.scope || (!config.enabled&&!config.downloads))return null;
     let topScope='';try{topScope=P.conversation(top.location.href);}catch{}
     if(topScope && topScope!==config.scope)return null;
     try{
@@ -21,27 +21,29 @@
       // Generic/inbox responses can contain other conversations. Require explicit scope.
       if(!post && !cid && !u.pathname.includes(config.scope))return null;
       if(post && !P.valid(target))return null;
-      return {scope:config.scope,epoch:config.epoch,target:target||null};
+      return {scope:config.scope,epoch:config.epoch,target:target||null,collect:config.enabled};
     }catch{return null;}
   }
   function current(s){
-    if(!config?.enabled || config.scope!==s.scope || config.epoch!==s.epoch)return false;
+    if((!config?.enabled&&!config?.downloads) || config.scope!==s.scope || config.epoch!==s.epoch)return false;
     try {return P.conversation(top.location.href)===s.scope;}catch{return false;}
   }
   function report(s,status,headers,body){
     if(!current(s))return;
     // A GetPostById request already names the post, even if its preview is rate limited.
     // Saving that explicit reference needs no retry or extra API lookup.
-    if(s.target)send({kind:'links',scope:s.scope,ids:[s.target],media:[]});
+    if(s.target)send({kind:'preview',scope:s.scope,epoch:s.epoch,ids:[s.target],media:[]});
+    if(s.target&&s.collect&&config.enabled)send({kind:'links',scope:s.scope,epoch:s.epoch,ids:[s.target],media:[]});
     if(status===429 || status===403){
-      send({kind:'limit',scope:s.scope,until:status===429?P.cooldown(headers):Date.now()+30*60*1000,status});return;
+      if(s.collect&&config.enabled)send({kind:'limit',scope:s.scope,epoch:s.epoch,until:status===429?P.cooldown(headers):Date.now()+30*60*1000,status});return;
     }
     if(status<200||status>=300||!body)return;
     let data;try{data=typeof body==='string'?JSON.parse(body):body;}catch{return;}
     const result=P.extract(data,s.target);
     // The requested post is itself evidence even if the response is a tombstone.
     if(s.target && !result.ids.includes(s.target))result.ids.push(s.target);
-    send({kind:'links',scope:s.scope,...result});
+    send({kind:'preview',scope:s.scope,epoch:s.epoch,...result});
+    if(s.collect&&config.enabled)send({kind:'links',scope:s.scope,epoch:s.epoch,...result});
   }
   async function read(r,s){
     if(active>=2 || Number(r.headers.get('content-length'))>MAX)return;
