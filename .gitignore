@@ -97,3 +97,18 @@ bdd-gen/
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Aster Harbor local and generated artifacts
+/extension/
+/work/
+/.local/
+/test-artifacts/
+/dist/
+/commit-batch-report.json
+*.gitbundle
+*.key
+.env.*
+!.env.example
+/Oman-Creator-Payout-Options.md
+/PROJECT-v1.2.md
+/Media-Harvester-Downloader-v1.2-Guide.md
