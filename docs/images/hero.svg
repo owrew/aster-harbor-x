@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="370" viewBox="0 0 1280 370" role="img" aria-label="Aster Harbor, your X media workspace by Awais Ali Rafaqat">
+<rect width="1280" height="370" rx="20" fill="#f3f6fc"/>
+<rect x="46" y="48" width="105" height="126" rx="21" fill="#eeecfb" stroke="#5b4dd8" stroke-width="3"/>
+<path d="M98 76v58m-21-20 21 22 22-22" stroke="#5b4dd8" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="190" y="110" fill="#193052" font-family="Segoe UI,Arial,sans-serif" font-size="57" font-weight="700">Aster Harbor</text>
+<text x="190" y="157" fill="#63748e" font-family="Segoe UI,Arial,sans-serif" font-size="25">Your X media workspace. Deliberate downloads. Persistent links.</text>
+<rect x="48" y="223" width="1184" height="1" fill="#d8e2ef"/>
+<text x="52" y="270" fill="#167c83" font-family="Segoe UI,Arial,sans-serif" font-size="20">Individual videos</text>
+<text x="350" y="270" fill="#167c83" font-family="Segoe UI,Arial,sans-serif" font-size="20">Scoped DM collections</text>
+<text x="706" y="270" fill="#167c83" font-family="Segoe UI,Arial,sans-serif" font-size="20">Local storage</text>
+<text x="1010" y="270" fill="#167c83" font-family="Segoe UI,Arial,sans-serif" font-size="20">Manual Start / Stop</text>
+<text x="52" y="330" fill="#63748e" font-family="Segoe UI,Arial,sans-serif" font-size="17">Maintained by Awais Ali Rafaqat · MPL-2.0 fork of Media Harvest by Elton H.Y. Chou</text>
+</svg>
