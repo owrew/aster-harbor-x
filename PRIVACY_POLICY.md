@@ -1,38 +1,45 @@
-# Media Harvest Privacy Policy
+# Aster Harbor privacy policy
 
-This Privacy Policy describes how Media Harvest ("we" or "us") collects, uses, and protects personal information that we collect through our Media Harvest application (the "App"). By using the App, you agree to the collection, use, and protection of your personal information as described in this Privacy Policy.
+Maintainer: **Awais Ali Rafaqat** (GitHub: **owrew**).
+Project: **Aster Harbor — X Media Harvester**.
+Policy version: **1.3.0**, 3 November 2026.
 
-## What information do we collect?
+## Purpose
 
-We may collect personal information about you when you interact with the App, such as when you create an account, fill out a form, or use certain features. The types of personal information we may collect include:
+Aster Harbor helps users save links from their own accessible X conversations and manually download available post media. It is based on Media Harvest and runs as a Chromium browser extension.
 
-- Device information (such as device type, operating system, and browser type)
-- Usage information (such as how you use the App and the features you use)
+## Data the extension accesses
 
-## How do we use your information?
+When used on X, the extension can inspect supported loaded post/conversation elements, relevant request URLs/responses, and post/media metadata. The native downloader can use authentication information available to the browser to request media that the signed-in user is allowed to access.
 
-We use your personal information only for the purposes of providing and improving the App. We do not share your personal information with any third-party service providers, except as required by law.
+The collector can process message response data locally to identify post links. It does not intentionally store full DM transcripts; it saves post IDs/URLs, conversation identifiers, source labels, timestamps, and recovered media descriptors.
 
-We may use your personal information for the following purposes:
+## Where information is stored
 
-- To provide and improve the App
-- To personalize your experience with the App
-- To process your transactions and payments
-- To communicate with you about the App and updates
-- To comply with legal obligations
+Collector preferences, links, partial checkpoints, cooldowns, and manual download-dispatch records are stored in the extension's local browser storage. The inherited downloader also uses browser-local settings, caches, and an IndexedDB download-history database.
 
-## Your Choices
+Storage is not synced to an Aster Harbor server. The extension does not provide its own application-level encryption. Other users or software with access to the browser profile may be able to access local data.
 
-You can choose not to provide certain personal information to us, but this may limit your ability to use certain features of the App.
+## Network activity and third parties
 
-## Security
+X receives requests made by its own page and by explicit native video lookups/downloads. Downloaded files are handled by Edge/Chrome or the user-selected Aria2 integration.
 
-We take reasonable measures to protect the security of your personal information, but no method of transmission over the Internet or electronic storage is 100% secure. We cannot guarantee the security of your personal information.
+Support links open Ko-fi or another configured provider only after a user action. The packaged badge and QR image do not load payment scripts into X. Once opened, that provider's policies apply.
 
-## Updates to this Privacy Policy
+The supplied local build defaults disable the upstream Sentry endpoint and contain no credentials for upstream cloud/premium services. The repository retains upstream code for those integrations; review any change that enables them and update this policy before release.
 
-We may update this Privacy Policy from time to time. We will notify you of any material changes by posting the updated policy on our website or within the App.
+## Sharing and exports
 
-## Contact Us
+TXT, CSV, and JSON exports are created locally at the user's request. The extension does not automatically send those exports to another person or service. Users control subsequent sharing.
 
-If you have any questions about this Privacy Policy, please contact us at [contact@mediaharvest.app](mailto:contact@mediaharvest.app).
+## Controls and deletion
+
+Harvesting starts stopped after refresh. Users can stop collection, disable idle detection controls, remove selected saved links, and uninstall the extension. Removing link records does not delete downloaded files. Browser profile deletion or uninstall may erase local extension data; back up first.
+
+## What is not claimed
+
+The extension does not guarantee that every conversation link is recovered, that all background lookups are attributable to a specific DM, that protected/deleted media can be accessed, or that X will never apply limits.
+
+## Publication
+
+Host this policy at an accessible public URL before submitting a store listing. Do not put a non-accessible private GitHub URL in the store's privacy-policy field. Replace project contact instructions with a stable public support channel when the repository is made public.
