@@ -1,0 +1,22 @@
+name: Aster Harbor quality gates
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check source and packaged-code declarations
+        run: node scripts/check-project.cjs
+      - name: Test parsers and support boundaries
+        run: node --test tests/aster-core.test.cjs
