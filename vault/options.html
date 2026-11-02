@@ -1,0 +1,21 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Settings — Media Harvester</title><link rel="stylesheet" href="ui.css">
+<body><div class="app"><aside><a class="brand" href="manager.html"><span class="brand-icon">⇩</span>Media Harvester</a><p class="sidebar-note">Your X media workspace</p><nav class="side-nav"><a href="manager.html">Saved links</a><a href="downloads.html">Download activity</a><a class="active" href="options.html">Settings</a></nav><div class="sidebar-bottom">Local storage<br>No automatic harvesting</div></aside>
+<main><header><div><h1>Make it yours.</h1><p>Appearance, page controls, and a lighter footprint on X.</p></div><button id="native">Media Harvest download settings</button></header>
+<form id="settings"><section class="settings-block"><div><h2>Appearance</h2><p>Keep the controls comfortable without covering your conversations.</p></div><div class="fields">
+<label>Theme<select name="theme"><option value="system">Follow device</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
+<label>Panel position<select name="corner"><option value="right">Bottom right</option><option value="left">Bottom left</option></select></label>
+<label class="check"><input name="compact" type="checkbox">Compact in-page panel</label></div></section>
+<section class="settings-block"><div><h2>On-page controls</h2><p>Download controls can stay available while link harvesting is stopped.</p></div><div class="fields">
+<label class="check"><input name="showButtons" type="checkbox">Show Download video buttons on recognized posts</label>
+<label class="check"><input name="previewDetection" type="checkbox">Detect DM preview references for manual downloads</label>
+<p class="hint">Turning preview detection off reduces idle response inspection. It does not disable explicit DM harvesting.</p></div></section>
+<section class="settings-block"><div><h2>Performance &amp; scrolling</h2><p>No periodic page scans. Work is debounced and pauses when the tab is hidden.</p></div><div class="fields grid-two">
+<label>Wait after a page change (ms)<input name="scanDelay" type="number" min="400" max="3000" step="100"></label>
+<label>Maximum cards per scan<input name="maxCards" type="number" min="50" max="400" step="10"></label>
+<label>Seconds between scroll steps<input name="scrollSeconds" type="number" min="15" max="120"></label>
+<label>Steps per scroll session<input name="maxSteps" type="number" min="10" max="200"></label>
+<p class="hint span-two">Higher delays and fewer cards reduce work. Automatic scrolling still requires Start and stops on detected rate limits.</p></div></section>
+<section class="settings-block"><div><h2>Creator support</h2><p>Optional external support link. No payment code or tracking loads in X.</p></div><div class="fields"><label>Verified creator page URL<input name="supportUrl" type="url" placeholder="https://ko-fi.com/your-page"></label><p class="hint">Leave blank until your provider has approved your real identity and payout method. An account is not created by entering a link.</p></div></section>
+<div class="save-bar"><button class="primary" type="submit">Save preferences</button><button id="reset" type="button">Restore defaults</button><span id="message" role="status"></span></div></form>
+<footer>Filename templates, Save As, and Aria2 remain in Media Harvest download settings. Harvesting always starts stopped after refresh.</footer>
+</main></div><script src="preferences.js"></script><script src="theme.js"></script><script src="options.js"></script></body></html>
