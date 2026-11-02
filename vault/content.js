@@ -130,7 +130,8 @@
     const shadow=host.attachShadow({mode:'open'});
     shadow.innerHTML=DMPanelHTML;
     const $=s=>shadow.querySelector(s);
-    shadow.querySelector('strong').textContent='Media Harvester';
+    shadow.querySelector('strong').textContent='Aster Harbor';
+    AsterSupport.mount(shadow.querySelector('section'));
     const modes=document.createElement('div');modes.id='modes';modes.hidden=true;
     const selectButton=$('#select');selectButton.textContent='Harvest DM links';modes.append(selectButton);
     const older=document.createElement('button');older.textContent='Harvest older DM links';modes.append(older);

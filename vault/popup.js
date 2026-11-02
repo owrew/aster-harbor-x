@@ -13,6 +13,6 @@ $('#start').onclick=()=>command('start');$('#stop').onclick=()=>command('stop');
   const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
   const data=await chrome.storage.local.get(['session:'+tab?.id,'preferences']);
   $('#status').textContent=data['session:'+tab?.id]?.enabled?'DM harvesting is active in this tab.':'Download-only mode. DM harvesting is stopped.';
-  const url=data.preferences?.supportUrl;
-  if(url){$('#support').hidden=false;$('#support').onclick=()=>chrome.tabs.create({url});}
+  // The packaged support widget handles the Ko-fi link and QR consistently.
+  if($('#support'))$('#support').hidden=true;
 })();
